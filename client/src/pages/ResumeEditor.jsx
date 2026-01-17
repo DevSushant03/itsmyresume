@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import axios from 'axios';
-import { Save, Loader, ArrowLeft, Download, Share2 } from 'lucide-react';
+import { getResumeById, updateResume } from '../utils/resumeStore';
+import { Save, Loader, ArrowLeft, Download, Share2, Eye, Check } from 'lucide-react';
 import PersonalDetails from '../components/editor/PersonalDetails';
 import Education from '../components/editor/Education';
 import Experience from '../components/editor/Experience';
@@ -14,44 +14,81 @@ const ResumeEditor = () => {
     const navigate = useNavigate();
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
+    const [saved, setSaved] = useState(false);
     const [resumeData, setResumeData] = useState(null);
     const [activeSection, setActiveSection] = useState('personal');
+    const [showPreview, setShowPreview] = useState(false);
 
     useEffect(() => {
-        const fetchResume = async () => {
-            try {
-                const token = localStorage.getItem('token');
-                const config = { headers: { Authorization: `Bearer ${token}` } };
-                const res = await axios.get(`http://localhost:5000/api/resumes/${id}`, config);
-                setResumeData(res.data);
-            } catch (error) {
-                console.error('Error fetching resume:', error);
-                // navigate('/dashboard');
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        if (id) fetchResume();
-    }, [id, navigate]);
-
-    const handleSave = async () => {
-        setSaving(true);
-        try {
-            const token = localStorage.getItem('token');
-            const config = { headers: { Authorization: `Bearer ${token}` } };
-            await axios.put(`http://localhost:5000/api/resumes/${id}`, resumeData, config);
-            alert('Resume saved!');
-        } catch (error) {
-            console.error('Error saving resume:', error);
-            alert('Failed to save resume');
-        } finally {
-            setSaving(false);
+        const resume = getResumeById(id);
+        if (resume) {
+            setResumeData(resume);
         }
+        setLoading(false);
+    }, [id]);
+
+    // Auto-save when data changes
+    useEffect(() => {
+        if (resumeData && !loading) {
+            const timer = setTimeout(() => {
+                updateResume(id, resumeData);
+            }, 1000);
+            return () => clearTimeout(timer);
+        }
+    }, [resumeData, id, loading]);
+
+    const handleSave = () => {
+        setSaving(true);
+        updateResume(id, resumeData);
+        setTimeout(() => {
+            setSaving(false);
+            setSaved(true);
+            setTimeout(() => setSaved(false), 2000);
+        }, 500);
     };
 
-    if (loading) return <div className="text-center py-20">Loading Editor...</div>;
-    if (!resumeData) return <div className="text-center py-20">Resume not found</div>;
+    const handleDownloadPDF = () => {
+        window.print();
+    };
+
+    const copyPublicLink = () => {
+        const url = `${window.location.origin}/p/${id}`;
+        navigator.clipboard.writeText(url);
+        alert('Public link copied to clipboard!');
+    };
+
+    const togglePublic = () => {
+        const newStatus = !resumeData.isPublic;
+        setResumeData({ ...resumeData, isPublic: newStatus });
+        updateResume(id, { ...resumeData, isPublic: newStatus });
+    };
+
+    if (loading) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-slate-100">
+                <div className="text-center">
+                    <div className="animate-spin w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full mx-auto"></div>
+                    <p className="mt-4 text-slate-500">Loading Editor...</p>
+                </div>
+            </div>
+        );
+    }
+
+    if (!resumeData) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-slate-100">
+                <div className="text-center">
+                    <h2 className="text-2xl font-bold text-slate-800 mb-4">Resume not found</h2>
+                    <button
+                        onClick={() => navigate('/my-resumes')}
+                        className="text-blue-600 hover:text-blue-700 font-medium"
+                    >
+                        ← Back to My Resumes
+                    </button>
+                </div>
+            </div>
+        );
+    }
 
     const renderForm = () => {
         switch (activeSection) {
@@ -71,7 +108,7 @@ const ResumeEditor = () => {
     };
 
     const sections = [
-        { id: 'personal', label: 'Personal Details' },
+        { id: 'personal', label: 'Personal' },
         { id: 'education', label: 'Education' },
         { id: 'experience', label: 'Experience' },
         { id: 'skills', label: 'Skills' },
@@ -79,66 +116,99 @@ const ResumeEditor = () => {
     ];
 
     return (
-        <div className="h-screen flex flex-col bg-slate-100 overflow-hidden">
-            {/* Toolbar */}
-            <div className="bg-white border-b border-slate-200 px-6 py-3 flex justify-between items-center z-20 shadow-sm">
-                <div className="flex items-center space-x-4">
-                    <button onClick={() => navigate('/dashboard')} className="text-slate-500 hover:text-slate-800 transition-colors">
+        <div className="h-screen flex flex-col bg-slate-100 overflow-hidden print:bg-white">
+            {/* Toolbar - Hidden on print */}
+            <div className="bg-white border-b border-slate-200 px-4 sm:px-6 py-3 flex flex-wrap justify-between items-center gap-3 z-20 shadow-sm print:hidden">
+                <div className="flex items-center space-x-3 sm:space-x-4">
+                    <button
+                        onClick={() => navigate('/dashboard')}
+                        className="text-slate-500 hover:text-slate-800 transition-colors p-2 hover:bg-slate-100 rounded-lg"
+                    >
                         <ArrowLeft size={20} />
                     </button>
                     <input
                         type="text"
                         value={resumeData.title}
                         onChange={(e) => setResumeData({ ...resumeData, title: e.target.value })}
-                        className="font-bold text-lg text-slate-800 border-none focus:ring-0 px-2 py-1 rounded hover:bg-slate-50"
+                        className="font-bold text-base sm:text-lg text-slate-800 border-none focus:ring-0 focus:outline-none px-2 py-1 rounded hover:bg-slate-50 max-w-[150px] sm:max-w-none"
                     />
                 </div>
-                <div className="flex items-center space-x-3">
+
+                <div className="flex items-center space-x-2 sm:space-x-3">
+                    {/* Mobile Preview Toggle */}
                     <button
-                        onClick={() => {
-                            const newStatus = !resumeData.isPublic;
-                            setResumeData({ ...resumeData, isPublic: newStatus });
-                            // Ideally save immediately or let user save. For better UX let's toggle state and let user save.
-                            // Or better, show current status.
-                            alert(`Resume is now ${newStatus ? 'Public' : 'Private'}. Click Save to apply.`);
-                        }}
-                        className={`flex items-center space-x-2 px-3 py-1.5 rounded-lg transition-colors text-sm font-medium ${resumeData.isPublic ? 'text-green-600 bg-green-50 hover:bg-green-100' : 'text-slate-600 hover:text-blue-600 hover:bg-blue-50'
+                        onClick={() => setShowPreview(!showPreview)}
+                        className="lg:hidden flex items-center space-x-1 text-slate-600 hover:text-blue-600 px-3 py-2 rounded-lg hover:bg-blue-50 transition-colors text-sm font-medium"
+                    >
+                        <Eye size={18} />
+                        <span className="hidden sm:inline">{showPreview ? 'Edit' : 'Preview'}</span>
+                    </button>
+
+                    {/* Public Toggle */}
+                    <button
+                        onClick={togglePublic}
+                        className={`hidden sm:flex items-center space-x-2 px-3 py-2 rounded-lg transition-colors text-sm font-medium ${resumeData.isPublic
+                                ? 'text-green-600 bg-green-50 hover:bg-green-100'
+                                : 'text-slate-600 hover:text-blue-600 hover:bg-blue-50'
                             }`}
                     >
                         <Share2 size={18} />
-                        <span>{resumeData.isPublic ? 'Public' : 'Make Public'}</span>
+                        <span>{resumeData.isPublic ? 'Public' : 'Private'}</span>
                     </button>
+
+                    {/* Copy Link */}
+                    {resumeData.isPublic && (
+                        <button
+                            onClick={copyPublicLink}
+                            className="hidden sm:flex items-center space-x-1 text-blue-600 hover:text-blue-700 px-3 py-2 rounded-lg hover:bg-blue-50 transition-colors text-sm font-medium"
+                        >
+                            <span>Copy Link</span>
+                        </button>
+                    )}
+
+                    {/* Download PDF */}
                     <button
-                        onClick={() => window.print()}
-                        className="flex items-center space-x-2 text-slate-600 hover:text-blue-600 px-3 py-1.5 rounded-lg hover:bg-blue-50 transition-colors text-sm font-medium"
+                        onClick={handleDownloadPDF}
+                        className="flex items-center space-x-1 sm:space-x-2 text-slate-600 hover:text-purple-600 px-3 py-2 rounded-lg hover:bg-purple-50 transition-colors text-sm font-medium"
                     >
                         <Download size={18} />
-                        <span>Download PDF</span>
+                        <span className="hidden sm:inline">PDF</span>
                     </button>
+
+                    {/* Save Button */}
                     <button
                         onClick={handleSave}
                         disabled={saving}
-                        className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors text-sm font-bold shadow-md"
+                        className={`flex items-center space-x-2 px-4 sm:px-5 py-2 rounded-xl transition-all text-sm font-bold shadow-md ${saved
+                                ? 'bg-green-500 text-white'
+                                : 'bg-gradient-to-r from-blue-600 to-purple-600 hover:shadow-lg hover:shadow-blue-500/25 text-white'
+                            }`}
                     >
-                        {saving ? <Loader className="animate-spin" size={18} /> : <Save size={18} />}
-                        <span>Save Changes</span>
+                        {saving ? (
+                            <Loader className="animate-spin" size={18} />
+                        ) : saved ? (
+                            <Check size={18} />
+                        ) : (
+                            <Save size={18} />
+                        )}
+                        <span className="hidden sm:inline">{saved ? 'Saved!' : 'Save'}</span>
                     </button>
                 </div>
             </div>
 
             {/* Main Content */}
-            <div className="flex-1 flex overflow-hidden">
+            <div className="flex-1 flex overflow-hidden print:block">
                 {/* Editor Panel */}
-                <div className="w-1/2 flex flex-col border-r border-slate-200 bg-white">
-                    {/* Tabs */}
+                <div className={`w-full lg:w-1/2 flex flex-col border-r border-slate-200 bg-white print:hidden ${showPreview ? 'hidden lg:flex' : 'flex'}`}>
+                    {/* Section Tabs */}
                     <div className="flex overflow-x-auto border-b border-slate-200 scrollbar-hide">
                         {sections.map((section) => (
                             <button
                                 key={section.id}
                                 onClick={() => setActiveSection(section.id)}
-                                className={`px-6 py-4 whitespace-nowrap font-medium text-sm transition-colors border-b-2 ${activeSection === section.id
-                                    ? 'border-blue-600 text-blue-600 bg-blue-50/50'
-                                    : 'border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-50'
+                                className={`px-4 sm:px-6 py-4 whitespace-nowrap font-medium text-sm transition-colors border-b-2 flex-shrink-0 ${activeSection === section.id
+                                        ? 'border-blue-600 text-blue-600 bg-blue-50/50'
+                                        : 'border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-50'
                                     }`}
                             >
                                 {section.label}
@@ -147,14 +217,14 @@ const ResumeEditor = () => {
                     </div>
 
                     {/* Form Area */}
-                    <div className="flex-1 overflow-y-auto p-6">
+                    <div className="flex-1 overflow-y-auto p-4 sm:p-6">
                         {renderForm()}
                     </div>
                 </div>
 
                 {/* Preview Panel */}
-                <div className="w-1/2 bg-slate-100 overflow-y-auto p-8 flex justify-center">
-                    <div className="transform scale-[0.8] origin-top">
+                <div className={`w-full lg:w-1/2 bg-slate-100 overflow-y-auto p-4 sm:p-8 flex justify-center print:w-full print:p-0 print:bg-white ${showPreview ? 'flex' : 'hidden lg:flex'}`}>
+                    <div className="transform scale-[0.65] sm:scale-[0.75] lg:scale-[0.8] origin-top print:scale-100">
                         <LivePreview resume={resumeData} />
                     </div>
                 </div>

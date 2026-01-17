@@ -1,15 +1,14 @@
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, FileText, FilePlus, User, LogOut, Menu, X } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
+import { LayoutDashboard, FileText, FilePlus, User, Home, Menu, X } from 'lucide-react';
 import { useState } from 'react';
 
 const Sidebar = () => {
     const { pathname } = useLocation();
-    const { logout, user } = useAuth();
     const [isOpen, setIsOpen] = useState(false);
 
     const links = [
-        { name: 'Dashboard', path: '/', icon: <LayoutDashboard size={20} /> },
+        { name: 'Home', path: '/', icon: <Home size={20} /> },
+        { name: 'Dashboard', path: '/dashboard', icon: <LayoutDashboard size={20} /> },
         { name: 'My Resumes', path: '/my-resumes', icon: <FileText size={20} /> },
         { name: 'Templates', path: '/templates', icon: <FilePlus size={20} /> },
     ];
@@ -18,12 +17,13 @@ const Sidebar = () => {
 
     return (
         <>
-            {/* Mobile Toggle */}
+            {/* Mobile Toggle Button */}
             <button
-                className="md:hidden fixed top-4 left-4 z-50 p-2 bg-white rounded-md shadow-md"
+                className="md:hidden fixed top-4 left-4 z-50 p-2.5 bg-white rounded-xl shadow-lg border border-slate-200 hover:bg-slate-50 transition-colors"
                 onClick={() => setIsOpen(!isOpen)}
+                aria-label="Toggle menu"
             >
-                {isOpen ? <X size={24} /> : <Menu size={24} />}
+                {isOpen ? <X size={24} className="text-slate-700" /> : <Menu size={24} className="text-slate-700" />}
             </button>
 
             {/* Sidebar Container */}
@@ -32,55 +32,57 @@ const Sidebar = () => {
                 ${isOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0
             `}>
                 <div className="flex flex-col h-full">
+                    {/* Brand */}
                     <div className="p-6 border-b border-slate-800">
-                        <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
-                            ResumeBuilder
-                        </h1>
+                        <Link to="/" className="flex items-center space-x-3">
+                            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center">
+                                <FileText className="w-6 h-6 text-white" />
+                            </div>
+                            <span className="text-xl font-bold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
+                                ResumeBuilder
+                            </span>
+                        </Link>
                     </div>
 
-                    <nav className="flex-1 p-4 space-y-2">
+                    {/* Navigation Links */}
+                    <nav className="flex-1 p-4 space-y-1">
                         {links.map((link) => (
                             <Link
                                 key={link.path}
                                 to={link.path}
                                 onClick={() => setIsOpen(false)}
-                                className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${isActive(link.path)
-                                        ? 'bg-blue-600 text-white'
+                                className={`flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 ${isActive(link.path)
+                                        ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg shadow-blue-500/25'
                                         : 'text-slate-400 hover:bg-slate-800 hover:text-white'
                                     }`}
                             >
                                 {link.icon}
-                                <span>{link.name}</span>
+                                <span className="font-medium">{link.name}</span>
                             </Link>
                         ))}
                     </nav>
 
+                    {/* Profile Link at Bottom */}
                     <div className="p-4 border-t border-slate-800">
                         <Link
                             to="/profile"
-                            className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors mb-2 ${isActive('/profile')
-                                    ? 'bg-blue-600 text-white'
+                            onClick={() => setIsOpen(false)}
+                            className={`flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 ${isActive('/profile')
+                                    ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg shadow-blue-500/25'
                                     : 'text-slate-400 hover:bg-slate-800 hover:text-white'
                                 }`}
                         >
                             <User size={20} />
-                            <span>Profile</span>
+                            <span className="font-medium">Profile</span>
                         </Link>
-                        <button
-                            onClick={logout}
-                            className="flex items-center space-x-3 px-4 py-3 w-full text-left text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
-                        >
-                            <LogOut size={20} />
-                            <span>Logout</span>
-                        </button>
                     </div>
                 </div>
             </div>
 
-            {/* Overlay for mobile */}
+            {/* Mobile Overlay */}
             {isOpen && (
                 <div
-                    className="fixed inset-0 bg-black/50 z-30 md:hidden"
+                    className="fixed inset-0 bg-black/50 backdrop-blur-sm z-30 md:hidden"
                     onClick={() => setIsOpen(false)}
                 />
             )}

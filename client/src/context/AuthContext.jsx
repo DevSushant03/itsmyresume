@@ -1,58 +1,34 @@
-import { createContext, useState, useEffect, useContext } from 'react';
-import axios from 'axios';
+import { createContext, useState, useContext, useEffect } from 'react';
+import { initializeDemoResumes } from '../utils/resumeStore';
 
 const AuthContext = createContext();
 
 export const useAuth = () => useContext(AuthContext);
 
 export const AuthProvider = ({ children }) => {
-    const [user, setUser] = useState(null);
+    // Static user - no authentication needed
+    const [user] = useState({
+        name: 'John Doe',
+        email: 'john.doe@example.com',
+        createdAt: new Date('2024-01-01').toISOString()
+    });
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        const checkUserLoggedIn = async () => {
-            const token = localStorage.getItem('token');
-            if (token) {
-                try {
-                    const config = {
-                        headers: {
-                            Authorization: `Bearer ${token}`,
-                        },
-                    };
-                    const res = await axios.get('http://localhost:5000/api/auth/me', config);
-                    setUser(res.data);
-                } catch (error) {
-                    localStorage.removeItem('token');
-                    setUser(null);
-                }
-            }
-            setLoading(false);
-        };
-
-        checkUserLoggedIn();
+        // Initialize demo resumes on first load
+        initializeDemoResumes();
+        setLoading(false);
     }, []);
 
-    const login = async (email, password) => {
-        const res = await axios.post('http://localhost:5000/api/auth/login', { email, password });
-        localStorage.setItem('token', res.data.token);
-        setUser(res.data);
-        return res.data;
-    };
-
-    const register = async (name, email, password) => {
-        const res = await axios.post('http://localhost:5000/api/auth/register', { name, email, password });
-        localStorage.setItem('token', res.data.token);
-        setUser(res.data);
-        return res.data;
-    };
-
+    // Logout is UI-only, just clears localStorage
     const logout = () => {
-        localStorage.removeItem('token');
-        setUser(null);
+        localStorage.clear();
+        alert('Logged out successfully! (localStorage cleared)');
+        window.location.href = '/';
     };
 
     return (
-        <AuthContext.Provider value={{ user, login, register, logout, loading }}>
+        <AuthContext.Provider value={{ user, logout, loading }}>
             {children}
         </AuthContext.Provider>
     );
