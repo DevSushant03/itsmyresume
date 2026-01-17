@@ -1,0 +1,30 @@
+@import "tailwindcss";
+
+@media print {
+    body * {
+        visibility: hidden;
+    }
+
+    #resume-preview,
+    #resume-preview * {
+        visibility: visible;
+    }
+
+    #resume-preview {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        margin: 0;
+        padding: 20mm !important;
+        /* Proper padding for print */
+        box-shadow: none !important;
+        min-height: 100%;
+        background: white;
+    }
+
+    @page {
+        size: auto;
+        margin: 0mm;
+    }
+}
