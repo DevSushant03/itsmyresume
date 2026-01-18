@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, FileText, FilePlus, User, Home, Menu, X } from 'lucide-react';
+import { LayoutDashboard, FilePlus, User, Home, Menu, X, FileText } from 'lucide-react';
 import { useState } from 'react';
 
 const Sidebar = () => {
@@ -33,14 +33,13 @@ const Sidebar = () => {
             `}>
                 <div className="flex flex-col h-full">
                     {/* Brand */}
-                    <div className="p-6 border-b border-slate-800">
-                        <Link to="/" className="flex items-center space-x-3">
-                            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center">
-                                <FileText className="w-6 h-6 text-white" />
-                            </div>
-                            <span className="text-xl font-bold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
-                                ResumeBuilder
-                            </span>
+                    <div className="p-4 border-b border-slate-800">
+                        <Link to="/" className="block">
+                            <img
+                                src="/logo.png"
+                                alt="itsmyresume"
+                                className="h-8 w-auto"
+                            />
                         </Link>
                     </div>
 
@@ -52,8 +51,8 @@ const Sidebar = () => {
                                 to={link.path}
                                 onClick={() => setIsOpen(false)}
                                 className={`flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 ${isActive(link.path)
-                                        ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg shadow-blue-500/25'
-                                        : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+                                    ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg shadow-blue-500/25'
+                                    : 'text-slate-400 hover:bg-slate-800 hover:text-white'
                                     }`}
                             >
                                 {link.icon}
@@ -68,8 +67,8 @@ const Sidebar = () => {
                             to="/profile"
                             onClick={() => setIsOpen(false)}
                             className={`flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 ${isActive('/profile')
-                                    ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg shadow-blue-500/25'
-                                    : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+                                ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg shadow-blue-500/25'
+                                : 'text-slate-400 hover:bg-slate-800 hover:text-white'
                                 }`}
                         >
                             <User size={20} />

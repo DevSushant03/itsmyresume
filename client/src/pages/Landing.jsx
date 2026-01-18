@@ -42,14 +42,13 @@ const Landing = () => {
 
                 <nav className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
                     <div className="flex justify-between items-center">
-                        <div className="flex items-center space-x-2">
-                            <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-purple-600 rounded-xl flex items-center justify-center">
-                                <FileText className="w-6 h-6 text-white" />
-                            </div>
-                            <span className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                                ResumeBuilder
-                            </span>
-                        </div>
+                        <Link to="/" className="flex items-center">
+                            <img
+                                src="/logo.png"
+                                alt="itsmyresume"
+                                className="h-8 sm:h-10 w-auto"
+                            />
+                        </Link>
                         <div className="hidden md:flex items-center space-x-8">
                             <Link to="/dashboard" className="text-slate-600 hover:text-blue-600 transition-colors font-medium">
                                 Dashboard
@@ -188,7 +187,7 @@ const Landing = () => {
 
             {/* Footer */}
             <Footer />
-        </div>
+        </div >
     );
 };
 
