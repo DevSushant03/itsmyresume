@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { getResumes, deleteResume } from '../utils/resumeStore';
+import { useAuth } from '@clerk/clerk-react';
+import { getResumes, deleteResume } from '../services/resumeService';
 import { FileText, Edit, Trash2, Eye, Download, Link as LinkIcon, Plus, Search } from 'lucide-react';
 
 const MyResumes = () => {
+    const { getToken } = useAuth();
     const [resumes, setResumes] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
@@ -12,16 +14,32 @@ const MyResumes = () => {
         loadResumes();
     }, []);
 
-    const loadResumes = () => {
-        const data = getResumes();
-        setResumes(data);
-        setLoading(false);
+    const loadResumes = async () => {
+        try {
+            const token = await getToken();
+            if (token) {
+                const data = await getResumes(token);
+                setResumes(data);
+            }
+        } catch (error) {
+            console.error("Error loading resumes:", error);
+        } finally {
+            setLoading(false);
+        }
     };
 
-    const handleDelete = (id) => {
+    const handleDelete = async (id) => {
         if (window.confirm('Are you sure you want to delete this resume?')) {
-            deleteResume(id);
-            setResumes(resumes.filter(resume => resume.id !== id));
+            try {
+                const token = await getToken();
+                if (token) {
+                    await deleteResume(id, token);
+                    setResumes(resumes.filter(resume => (resume._id || resume.id) !== id));
+                }
+            } catch (error) {
+                console.error("Error deleting resume:", error);
+                alert("Failed to delete resume");
+            }
         }
     };
 
@@ -115,7 +133,7 @@ const MyResumes = () => {
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
                     {filteredResumes.map((resume) => (
                         <div
-                            key={resume.id}
+                            key={resume._id || resume.id}
                             className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden hover:shadow-xl transition-all duration-300 group"
                         >
                             {/* Preview Area */}
@@ -128,14 +146,14 @@ const MyResumes = () => {
                                 {/* Hover Actions Overlay */}
                                 <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-center justify-center space-x-3">
                                     <Link
-                                        to={`/editor/${resume.id}`}
+                                        to={`/editor/${resume._id || resume.id}`}
                                         className="p-3 bg-white text-slate-800 rounded-full hover:bg-blue-50 hover:text-blue-600 transition-colors shadow-lg transform translate-y-4 group-hover:translate-y-0 duration-300"
                                         title="Edit"
                                     >
                                         <Edit size={20} />
                                     </Link>
                                     <button
-                                        onClick={() => window.open(`/p/${resume.id}`, '_blank')}
+                                        onClick={() => window.open(`/p/${resume._id || resume.id}`, '_blank')}
                                         className="p-3 bg-white text-slate-800 rounded-full hover:bg-green-50 hover:text-green-600 transition-colors shadow-lg transform translate-y-4 group-hover:translate-y-0 duration-300 delay-75"
                                         title="View Public"
                                     >
@@ -163,7 +181,7 @@ const MyResumes = () => {
                                 <div className="flex justify-between items-start mb-3">
                                     <h3 className="font-bold text-lg text-slate-800 truncate pr-2 flex-1">{resume.title}</h3>
                                     <button
-                                        onClick={() => handleDelete(resume.id)}
+                                        onClick={() => handleDelete(resume._id || resume.id)}
                                         className="text-slate-400 hover:text-red-500 transition-colors p-1"
                                         title="Delete"
                                     >
@@ -177,7 +195,7 @@ const MyResumes = () => {
                                 {/* Action Buttons */}
                                 <div className="flex items-center justify-between pt-4 border-t border-slate-100">
                                     <button
-                                        onClick={() => copyToClipboard(resume.id)}
+                                        onClick={() => copyToClipboard(resume._id || resume.id)}
                                         className="flex items-center text-xs font-medium text-slate-600 hover:text-blue-600 transition-colors px-3 py-2 rounded-lg hover:bg-blue-50"
                                     >
                                         <LinkIcon size={14} className="mr-1.5" />

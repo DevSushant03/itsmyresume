@@ -1,22 +1,45 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import { getResumes } from '../utils/resumeStore';
+import { useUser, useAuth } from '@clerk/clerk-react';
+import { getResumes } from '../services/resumeService';
 import { Plus, FileText, Clock, ExternalLink, Sparkles } from 'lucide-react';
 
 const Dashboard = () => {
-    const { user } = useAuth();
+    const { user } = useUser();
+    const { getToken } = useAuth();
     const [resumes, setResumes] = useState([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        // Load resumes from localStorage
-        const loadedResumes = getResumes();
-        setResumes(loadedResumes);
-        setLoading(false);
-    }, []);
+        const fetchResumes = async () => {
+            try {
+                const token = await getToken();
+                if (token) {
+                    const loadedResumes = await getResumes(token);
+                    setResumes(loadedResumes);
+                }
+            } catch (error) {
+                console.error("Error loading resumes:", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        if (user) {
+            fetchResumes();
+        }
+    }, [user, getToken]);
 
     const recentResume = resumes.length > 0 ? resumes[resumes.length - 1] : null;
+
+    if (loading) {
+        return (
+            <div className="flex justify-center items-center h-screen text-slate-500">
+                <div className="animate-spin w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full mr-3"></div>
+                Loading dashboard...
+            </div>
+        );
+    }
 
     return (
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-0">
@@ -27,7 +50,7 @@ const Dashboard = () => {
                     <span className="text-sm font-medium text-slate-500">Welcome back</span>
                 </div>
                 <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-slate-800">
-                    Hello, {user?.name?.split(' ')[0]}! 👋
+                    Hello, {user?.firstName || user?.username || 'Creator'}! 👋
                 </h1>
                 <p className="text-slate-500 mt-2 text-sm sm:text-base">Here's what's happening with your resumes.</p>
             </header>
@@ -84,12 +107,7 @@ const Dashboard = () => {
             {/* Recently Edited Section */}
             <div className="mb-8">
                 <h2 className="text-lg sm:text-xl font-bold text-slate-800 mb-4">Recently Edited</h2>
-                {loading ? (
-                    <div className="text-slate-500 p-8 text-center">
-                        <div className="animate-spin w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full mx-auto"></div>
-                        <p className="mt-4">Loading...</p>
-                    </div>
-                ) : recentResume ? (
+                {recentResume ? (
                     <div className="bg-white p-5 sm:p-6 rounded-2xl shadow-sm border border-slate-200 hover:border-blue-300 transition-all">
                         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
                             <div className="flex items-center space-x-4">
@@ -111,14 +129,14 @@ const Dashboard = () => {
                             </div>
                             <div className="flex flex-wrap gap-3">
                                 <Link
-                                    to={`/editor/${recentResume.id}`}
+                                    to={`/editor/${recentResume._id || recentResume.id}`}
                                     className="flex-1 sm:flex-none px-5 py-2.5 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl font-medium hover:shadow-lg hover:shadow-blue-500/25 transition-all text-center"
                                 >
                                     Edit Resume
                                 </Link>
                                 {recentResume.isPublic && (
                                     <a
-                                        href={`/p/${recentResume.id}`}
+                                        href={`/p/${recentResume._id || recentResume.id}`}
                                         target="_blank"
                                         rel="noreferrer"
                                         className="flex items-center justify-center px-4 py-2.5 text-slate-600 hover:text-blue-600 border border-slate-200 rounded-xl hover:border-blue-300 transition-colors"
@@ -159,8 +177,8 @@ const Dashboard = () => {
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                         {resumes.slice(0, 3).map((resume) => (
                             <Link
-                                key={resume.id}
-                                to={`/editor/${resume.id}`}
+                                key={resume._id || resume.id}
+                                to={`/editor/${resume._id || resume.id}`}
                                 className="bg-white p-4 rounded-xl border border-slate-200 hover:border-blue-300 hover:shadow-md transition-all group"
                             >
                                 <div className="flex items-center space-x-3">

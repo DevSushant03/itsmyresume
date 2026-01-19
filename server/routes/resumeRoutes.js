@@ -7,7 +7,7 @@ const {
     updateResume,
     deleteResume
 } = require('../controllers/resumeController');
-const { protect } = require('../middleware/authMiddleware');
+const { requireAuth } = require('@clerk/express');
 
 // Public route for viewing potentially public resume needs careful handling in getResumeById
 // However, since we use protect middleware globally for some, we might need to adjust.
@@ -18,7 +18,7 @@ const { protect } = require('../middleware/authMiddleware');
 // Let's stick to protected for now for editing.
 // For public view, maybe /api/public/resumes/:id without protect?
 
-router.route('/').get(protect, getResumes).post(protect, createResume);
-router.route('/:id').get(protect, getResumeById).put(protect, updateResume).delete(protect, deleteResume);
+router.route('/').get(requireAuth(), getResumes).post(requireAuth(), createResume);
+router.route('/:id').get(requireAuth(), getResumeById).put(requireAuth(), updateResume).delete(requireAuth(), deleteResume);
 
 module.exports = router;

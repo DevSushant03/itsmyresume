@@ -1,11 +1,11 @@
 const Resume = require('../models/Resume');
-const User = require('../models/User');
 
 // @desc    Get user resumes
 // @route   GET /api/resumes
 // @access  Private
 const getResumes = async (req, res) => {
-    const resumes = await Resume.find({ user: req.user.id });
+    // req.auth is populated by Clerk
+    const resumes = await Resume.find({ clerkUserId: req.auth.userId });
     res.status(200).json(resumes);
 };
 
@@ -25,7 +25,11 @@ const getResumeById = async (req, res) => {
     }
 
     // If not public, check auth
-    if (!req.user || resume.user.toString() !== req.user.id) {
+    // req.auth might be undefined if route is public, but we used requireAuth() so it should be there.
+    // However if we want to allow public access we might need loose middleware.
+    // For now assuming strict requireAuth as per routes.
+
+    if (resume.clerkUserId !== req.auth.userId) {
         return res.status(401).json({ message: 'User not authorized' });
     }
 
@@ -37,11 +41,11 @@ const getResumeById = async (req, res) => {
 // @access  Private
 const createResume = async (req, res) => {
     const resume = await Resume.create({
-        user: req.user.id,
+        clerkUserId: req.auth.userId,
         title: req.body.title || 'Untitled Resume',
-        personalInfo: {
-            fullName: req.user.name,
-            email: req.user.email
+        personalInfo: req.body.personalInfo || {
+            fullName: 'New User', // Placeholder since we don't fetch user details here
+            email: ''
         },
         templateId: req.body.templateId || 'template1'
     });
@@ -59,7 +63,7 @@ const updateResume = async (req, res) => {
         return res.status(404).json({ message: 'Resume not found' });
     }
 
-    if (resume.user.toString() !== req.user.id) {
+    if (resume.clerkUserId !== req.auth.userId) {
         return res.status(401).json({ message: 'User not authorized' });
     }
 
@@ -80,7 +84,7 @@ const deleteResume = async (req, res) => {
         return res.status(404).json({ message: 'Resume not found' });
     }
 
-    if (resume.user.toString() !== req.user.id) {
+    if (resume.clerkUserId !== req.auth.userId) {
         return res.status(401).json({ message: 'User not authorized' });
     }
 

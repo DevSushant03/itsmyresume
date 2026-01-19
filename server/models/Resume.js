@@ -3,8 +3,13 @@ const mongoose = require('mongoose');
 const resumeSchema = mongoose.Schema({
     user: {
         type: mongoose.Schema.Types.ObjectId,
-        required: true,
+        required: false,
         ref: 'User'
+    },
+    clerkUserId: {
+        type: String,
+        required: true,
+        index: true
     },
     title: {
         type: String,

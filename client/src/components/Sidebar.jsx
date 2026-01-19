@@ -1,6 +1,7 @@
 import { Link, useLocation } from 'react-router-dom';
 import { LayoutDashboard, FilePlus, User, Home, Menu, X, FileText } from 'lucide-react';
 import { useState } from 'react';
+import { SignedIn, SignedOut, UserButton } from '@clerk/clerk-react';
 
 const Sidebar = () => {
     const { pathname } = useLocation();
@@ -63,17 +64,21 @@ const Sidebar = () => {
 
                     {/* Profile Link at Bottom */}
                     <div className="p-4 border-t border-slate-800">
-                        <Link
-                            to="/profile"
-                            onClick={() => setIsOpen(false)}
-                            className={`flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 ${isActive('/profile')
-                                ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg shadow-blue-500/25'
-                                : 'text-slate-400 hover:bg-slate-800 hover:text-white'
-                                }`}
-                        >
-                            <User size={20} />
-                            <span className="font-medium">Profile</span>
-                        </Link>
+                        <SignedIn>
+                            <div className="flex items-center space-x-3 px-4 py-3 text-slate-400 hover:text-white transition-colors">
+                                <UserButton showName userProfileMode="navigation" />
+                                {/* <span className="font-medium">Profile</span> - UserButton handles this */}
+                            </div>
+                        </SignedIn>
+                        <SignedOut>
+                            <Link
+                                to="/SignIn"
+                                className="flex items-center space-x-3 px-4 py-3 text-slate-400 hover:text-white transition-colors"
+                            >
+                                <User size={20} />
+                                <span className="font-medium">Sign In</span>
+                            </Link>
+                        </SignedOut>
                     </div>
                 </div>
             </div>

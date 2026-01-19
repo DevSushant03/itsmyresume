@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getResumeById, updateResume } from '../utils/resumeStore';
+import { useAuth } from '@clerk/clerk-react';
+import { getResumeById, updateResume } from '../services/resumeService';
 import { Save, Loader, ArrowLeft, Download, Share2, Eye, Check } from 'lucide-react';
 import PersonalDetails from '../components/editor/PersonalDetails';
 import Education from '../components/editor/Education';
@@ -12,6 +13,7 @@ import LivePreview from '../components/editor/LivePreview';
 const ResumeEditor = () => {
     const { id } = useParams();
     const navigate = useNavigate();
+    const { getToken } = useAuth();
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [saved, setSaved] = useState(false);
@@ -20,31 +22,56 @@ const ResumeEditor = () => {
     const [showPreview, setShowPreview] = useState(false);
 
     useEffect(() => {
-        const resume = getResumeById(id);
-        if (resume) {
-            setResumeData(resume);
-        }
-        setLoading(false);
-    }, [id]);
+        const fetchResume = async () => {
+            try {
+                const token = await getToken();
+                if (token) {
+                    const resume = await getResumeById(id, token);
+                    if (resume) {
+                        setResumeData(resume);
+                    }
+                }
+            } catch (error) {
+                console.error("Error fetching resume:", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchResume();
+    }, [id, getToken]);
 
     // Auto-save when data changes
     useEffect(() => {
         if (resumeData && !loading) {
-            const timer = setTimeout(() => {
-                updateResume(id, resumeData);
+            const timer = setTimeout(async () => {
+                try {
+                    const token = await getToken();
+                    if (token) {
+                        await updateResume(id, resumeData, token);
+                    }
+                } catch (error) {
+                    console.error("Auto-save failed", error);
+                }
             }, 1000);
             return () => clearTimeout(timer);
         }
-    }, [resumeData, id, loading]);
+    }, [resumeData, id, loading, getToken]);
 
-    const handleSave = () => {
+    const handleSave = async () => {
         setSaving(true);
-        updateResume(id, resumeData);
-        setTimeout(() => {
+        try {
+            const token = await getToken();
+            if (token) {
+                await updateResume(id, resumeData, token);
+                setSaved(true);
+                setTimeout(() => setSaved(false), 2000);
+            }
+        } catch (error) {
+            console.error("Manual save failed", error);
+            alert("Failed to save resume");
+        } finally {
             setSaving(false);
-            setSaved(true);
-            setTimeout(() => setSaved(false), 2000);
-        }, 500);
+        }
     };
 
     const handleDownloadPDF = () => {
@@ -57,10 +84,20 @@ const ResumeEditor = () => {
         alert('Public link copied to clipboard!');
     };
 
-    const togglePublic = () => {
+    const togglePublic = async () => {
         const newStatus = !resumeData.isPublic;
-        setResumeData({ ...resumeData, isPublic: newStatus });
-        updateResume(id, { ...resumeData, isPublic: newStatus });
+        const newData = { ...resumeData, isPublic: newStatus };
+        setResumeData(newData);
+        try {
+            const token = await getToken();
+            if (token) {
+                await updateResume(id, newData, token);
+            }
+        } catch (error) {
+            console.error("Toggle public failed", error);
+            // Revert on failure
+            setResumeData({ ...resumeData, isPublic: !newStatus });
+        }
     };
 
     if (loading) {
@@ -148,8 +185,8 @@ const ResumeEditor = () => {
                     <button
                         onClick={togglePublic}
                         className={`hidden sm:flex items-center space-x-2 px-3 py-2 rounded-lg transition-colors text-sm font-medium ${resumeData.isPublic
-                                ? 'text-green-600 bg-green-50 hover:bg-green-100'
-                                : 'text-slate-600 hover:text-blue-600 hover:bg-blue-50'
+                            ? 'text-green-600 bg-green-50 hover:bg-green-100'
+                            : 'text-slate-600 hover:text-blue-600 hover:bg-blue-50'
                             }`}
                     >
                         <Share2 size={18} />
@@ -180,8 +217,8 @@ const ResumeEditor = () => {
                         onClick={handleSave}
                         disabled={saving}
                         className={`flex items-center space-x-2 px-4 sm:px-5 py-2 rounded-xl transition-all text-sm font-bold shadow-md ${saved
-                                ? 'bg-green-500 text-white'
-                                : 'bg-gradient-to-r from-blue-600 to-purple-600 hover:shadow-lg hover:shadow-blue-500/25 text-white'
+                            ? 'bg-green-500 text-white'
+                            : 'bg-gradient-to-r from-blue-600 to-purple-600 hover:shadow-lg hover:shadow-blue-500/25 text-white'
                             }`}
                     >
                         {saving ? (
@@ -207,8 +244,8 @@ const ResumeEditor = () => {
                                 key={section.id}
                                 onClick={() => setActiveSection(section.id)}
                                 className={`px-4 sm:px-6 py-4 whitespace-nowrap font-medium text-sm transition-colors border-b-2 flex-shrink-0 ${activeSection === section.id
-                                        ? 'border-blue-600 text-blue-600 bg-blue-50/50'
-                                        : 'border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-50'
+                                    ? 'border-blue-600 text-blue-600 bg-blue-50/50'
+                                    : 'border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-50'
                                     }`}
                             >
                                 {section.label}

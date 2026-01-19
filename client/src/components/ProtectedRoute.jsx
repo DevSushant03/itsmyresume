@@ -1,15 +1,14 @@
-import { Navigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import { useAuth, RedirectToSignIn } from '@clerk/clerk-react';
 
 const ProtectedRoute = ({ children }) => {
-    const { user, loading } = useAuth();
+    const { isLoaded, isSignedIn } = useAuth();
 
-    if (loading) {
+    if (!isLoaded) {
         return <div className="flex justify-center items-center h-screen">Loading...</div>;
     }
 
-    if (!user) {
-        return <Navigate to="/SignIn" replace />;
+    if (!isSignedIn) {
+        return <RedirectToSignIn />;
     }
 
     return children;
